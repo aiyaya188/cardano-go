@@ -152,6 +152,15 @@ func (tb *TxBuilder) Reset() {
 }
 
 // Build returns a new transaction using the inputs, outputs and keys provided.
+func (tb *TxBuilder) MyBuild() (*Tx, error) {
+	if err := tb.build(); err != nil {
+		return nil, err
+	}
+
+	return tb.tx, nil
+}
+
+// Build returns a new transaction using the inputs, outputs and keys provided.
 func (tb *TxBuilder) Build() (*Tx, error) {
 	inputAmount, outputAmount := tb.calculateAmounts()
 

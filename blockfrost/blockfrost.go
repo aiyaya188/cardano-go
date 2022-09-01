@@ -22,6 +22,26 @@ type BlockfrostNode struct {
 }
 
 // NewNode returns a new instance of BlockfrostNode.
+func NewNodeByUrl(network cardano.Network, url string, projectID string) cardano.Node {
+	server := blockfrost.CardanoMainNet
+	if network == cardano.Testnet {
+		server = blockfrost.CardanoTestNet
+	}
+	if url != "" {
+		server = url
+	}
+
+	return &BlockfrostNode{
+		network:   network,
+		projectID: projectID,
+		client: blockfrost.NewAPIClient(blockfrost.APIClientOptions{
+			ProjectID: projectID,
+			Server:    server,
+		}),
+	}
+}
+
+// NewNode returns a new instance of BlockfrostNode.
 func NewNode(network cardano.Network, projectID string) cardano.Node {
 	server := blockfrost.CardanoMainNet
 	if network == cardano.Testnet {

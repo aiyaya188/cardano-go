@@ -153,11 +153,70 @@ func (tb *TxBuilder) Reset() {
 
 // Build returns a new transaction using the inputs, outputs and keys provided.
 func (tb *TxBuilder) MyBuild() (*Tx, error) {
-	if err := tb.build(); err != nil {
+	inputAmount, outputAmount := tb.calculateAmounts()
+
+	// Check input-output value conservation
+	if tb.changeReceiver == nil {
+		totalProduced := outputAmount.Add(NewValue(tb.tx.Body.Fee))
+		if inputOutputCmp := totalProduced.Cmp(inputAmount); inputOutputCmp == 1 || inputOutputCmp == 2 {
+			return nil, fmt.Errorf(
+				"insuficient input in transaction, got %v want %v",
+				inputAmount,
+				totalProduced,
+			)
+		} else if inputOutputCmp == -1 {
+			return nil, fmt.Errorf(
+				"fee too small, got %v want %v",
+				tb.tx.Body.Fee,
+				inputAmount.Sub(totalProduced),
+			)
+		}
+	}
+
+	if tb.changeReceiver != nil {
+		err := tb.addChangeIfNeeded(inputAmount, outputAmount)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if err := tb.mybuild(); err != nil {
 		return nil, err
 	}
 
 	return tb.tx, nil
+
+}
+
+func (tb *TxBuilder) mybuild() error {
+	if err := tb.buildBody(); err != nil {
+		return err
+	}
+	/*
+		txHash, err := tb.tx.Hash()
+		if err != nil {
+			return err
+		}
+
+		// Create witness set
+		tb.tx.WitnessSet.VKeyWitnessSet = make([]VKeyWitness, len(tb.pkeys))
+		for i, pkey := range tb.pkeys {
+			tb.tx.WitnessSet.VKeyWitnessSet[i] = VKeyWitness{
+				VKey:      pkey.PubKey(),
+				Signature: pkey.Sign(txHash),
+			}
+		}
+	*/
+	return nil
+}
+
+func (tb *TxBuilder) SetSign(pub crypto.PubKey, sig []byte) error {
+	tb.tx.WitnessSet.VKeyWitnessSet = make([]VKeyWitness, 1)
+	tb.tx.WitnessSet.VKeyWitnessSet[0] = VKeyWitness{
+		VKey:      pub,
+		Signature: sig,
+	}
+	return nil
 }
 
 // Build returns a new transaction using the inputs, outputs and keys provided.
